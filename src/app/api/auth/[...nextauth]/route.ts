@@ -1,10 +1,9 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import NextAuth from 'next-auth';
+import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { MongoClient } from 'mongodb';
 import { compare } from 'bcrypt';
 
-const authOptions = {
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -17,7 +16,6 @@ const authOptions = {
         const db = client.db();
         const user = await db.collection('users').findOne({ email: credentials?.email });
         await client.close();
-
         if (user && credentials?.password && await compare(credentials.password, user.password)) {
           return {
             id: user._id.toString(),
@@ -52,4 +50,6 @@ const authOptions = {
   },
 };
 
-export default (req: NextApiRequest, res: NextApiResponse) => NextAuth(req, res, authOptions);
+const handler = NextAuth(authOptions);
+
+export { handler as GET, handler as POST };
