@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { MongoClient } from 'mongodb';
 import { hash } from 'bcrypt';
-export const runtime = 'edge';
 
 export async function POST(request: Request) {
   try {
