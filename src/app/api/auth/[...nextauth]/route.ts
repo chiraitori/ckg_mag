@@ -1,12 +1,11 @@
-import NextAuth from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
+import nextAuth from 'next-auth';
+import credentialsProvider from 'next-auth/providers/credentials';
 import { MongoClient } from 'mongodb';
 import { compare } from 'bcrypt';
-import { NextRequest, NextResponse } from 'next/server';
 
-export const authOptions = {
+const authOptions = {
   providers: [
-    CredentialsProvider({
+    credentialsProvider({
       name: 'Credentials',
       credentials: {
         email: { label: "Email", type: "text" },
@@ -52,12 +51,4 @@ export const authOptions = {
   },
 };
 
-export async function GET(req: NextRequest) {
-  const handler = await NextAuth(authOptions);
-  return handler(req);
-}
-
-export async function POST(req: NextRequest) {
-  const handler = await NextAuth(authOptions);
-  return handler(req);
-}
+export default nextAuth(authOptions);
