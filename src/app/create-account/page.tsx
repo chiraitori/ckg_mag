@@ -44,7 +44,7 @@ export default function CreateAccount() {
     return <div>Loading...</div>;
   }
 
-  if (!session || !session.user.isAdmin) {
+  if (!session?.user?.isAdmin) {
     router.push('/login');
     return null;
   }
