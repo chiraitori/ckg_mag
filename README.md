@@ -1,4 +1,8 @@
 # Chicken Farm Management
+[![Netlify Status](https://api.netlify.com/api/v1/badges/dbd98f52-2e93-415f-8e87-0c006c6c53ec/deploy-status)](https://app.netlify.com/sites/ckg-mag/deploys)
+[![Vercel Deploy](https://deploy-badge.vercel.app/vercel/ckg-mag)](https://ckg-mag.vercel.app)
+
+
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
 ## Getting Started
