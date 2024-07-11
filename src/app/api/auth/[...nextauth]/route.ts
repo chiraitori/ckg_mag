@@ -2,6 +2,7 @@ import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { MongoClient } from 'mongodb';
 import { compare } from 'bcrypt';
+import { NextRequest, NextResponse } from 'next/server';
 
 export const authOptions = {
   providers: [
@@ -51,6 +52,12 @@ export const authOptions = {
   },
 };
 
-const handler = (req, res) => NextAuth(req, res, authOptions);
+export async function GET(req: NextRequest) {
+  const handler = await NextAuth(authOptions);
+  return handler(req);
+}
 
-export { handler as GET, handler as POST };
+export async function POST(req: NextRequest) {
+  const handler = await NextAuth(authOptions);
+  return handler(req);
+}
