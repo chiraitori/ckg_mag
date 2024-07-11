@@ -1,11 +1,12 @@
-import nextAuth from 'next-auth';
-import credentialsProvider from 'next-auth/providers/credentials';
+import { NextApiRequest, NextApiResponse } from 'next';
+import NextAuth from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
 import { MongoClient } from 'mongodb';
 import { compare } from 'bcrypt';
 
 const authOptions = {
   providers: [
-    credentialsProvider({
+    CredentialsProvider({
       name: 'Credentials',
       credentials: {
         email: { label: "Email", type: "text" },
@@ -51,4 +52,4 @@ const authOptions = {
   },
 };
 
-export default nextAuth(authOptions);
+export default (req: NextApiRequest, res: NextApiResponse) => NextAuth(req, res, authOptions);
