@@ -16,8 +16,20 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        // Check if user exists and password is correct
+        // Replace 'users' with your actual collection name in your MongoDB database
+        // Replace 'email' and 'password' with your actual field names in your users collection
+
+        // Example using MongoDB with Mongoose
+        // const User = mongoose.model('User');
+        // const user = await User.findOne({ email: credentials.email });
+        // if (!user ||!(await user.comparePassword(credentials.password))) {
+        //   return null;
+        // }
+        // return user;
+        const dbName = process.env.MONGODB_DB as string;
         const client = await MongoClient.connect(process.env.MONGODB_URI as string);
-        const db = client.db();
+        const db = client.db(dbName);
         const user = await db.collection('users').findOne({ email: credentials.email });
         await client.close();
 

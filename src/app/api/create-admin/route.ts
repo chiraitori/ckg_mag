@@ -10,8 +10,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
+    const dbName = process.env.MONGODB_DB as string;
     const client = await MongoClient.connect(process.env.MONGODB_URI as string);
-    const db = client.db();
+    const db = client.db(dbName);
 
     const existingUser = await db.collection('users').findOne({ email });
     if (existingUser) {

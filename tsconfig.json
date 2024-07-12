@@ -24,7 +24,8 @@
     "paths": {
       "@/*": [
         "./src/*"
-      ]
+      ],
+      "@auth/mongodb-adapter": ["./node_modules/@auth/mongodb-adapter/dist/index"]
     }
   },
   "include": [

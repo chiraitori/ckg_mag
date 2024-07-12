@@ -9,9 +9,9 @@ export async function POST(request: Request) {
     if (!email || !password) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
-
+    const dbName = process.env.MONGODB_DB as string;
     const client = await MongoClient.connect(process.env.MONGODB_URI as string);
-    const db = client.db();
+    const db = client.db(dbName);
 
     const existingUser = await db.collection('users').findOne({ email });
     if (existingUser) {
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     await db.collection('users').insertOne({
       email,
       password: hashedPassword,
-      isAdmin: false, // This makes it an admin account
+      isAdmin: false, // This makes it an normal account
     });
 
     await client.close();
