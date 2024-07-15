@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -23,10 +23,23 @@ export default function DashboardContent() {
     return null;
   }
 
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    router.push('/login');
+  };
+
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-4xl font-bold mb-4">Chicken Farm Dashboard</h1>
-      <p className="mb-4">Welcome, {session.user?.email}</p>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-4xl font-bold">Chicken Farm Dashboard</h1>
+        <button
+          onClick={handleLogout}
+          className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Logout
+        </button>
+      </div>
+      <p className="mb-4">Welcome, {session.user?.name}</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div className="bg-white shadow rounded-lg p-4">
           <h2 className="text-xl font-semibold mb-2">Food Stock</h2>

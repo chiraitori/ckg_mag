@@ -16,10 +16,9 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        // Check if user exists and password is correct
+        // Replace this with your own logic to fetch and compare users from your database
         // Replace 'users' with your actual collection name in your MongoDB database
         // Replace 'email' and 'password' with your actual field names in your users collection
-
         // Example using MongoDB with Mongoose
         // const User = mongoose.model('User');
         // const user = await User.findOne({ email: credentials.email });
@@ -27,6 +26,7 @@ export const authOptions: NextAuthOptions = {
         //   return null;
         // }
         // return user;
+
         const dbName = process.env.MONGODB_DB as string;
         const client = await MongoClient.connect(process.env.MONGODB_URI as string);
         const db = client.db(dbName);
@@ -36,6 +36,7 @@ export const authOptions: NextAuthOptions = {
         if (user && await compare(credentials.password, user.password)) {
           return {
             id: user._id.toString(),
+            name: user.name,  
             email: user.email,
             isAdmin: user.isAdmin || false
           };
@@ -48,6 +49,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.name = user.name;  
         token.email = user.email;
         token.isAdmin = user.isAdmin;
       }
@@ -56,6 +58,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
+        session.user.name = token.name as string;  
         session.user.email = token.email as string;
         session.user.isAdmin = token.isAdmin as boolean;
       }

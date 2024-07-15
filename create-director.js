@@ -14,7 +14,7 @@ rl.question('Enter admin email: ', (email) => {
       const options = {
         hostname: 'localhost',
         port: 3000,
-        path: '/api/admin',
+        path: '/api/director',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

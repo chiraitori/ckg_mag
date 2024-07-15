@@ -4,10 +4,10 @@ import { hash } from 'bcrypt';
 
 export async function POST(request: Request) {
   try {
-    const { email, password } = await request.json();
+    const { name, email, password } = await request.json();
 
-    if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+    if (!name || !email || !password) {
+      return NextResponse.json({ error: 'Name, email, and password are required' }, { status: 400 });
     }
 
     const dbName = process.env.MONGODB_DB as string;
@@ -23,16 +23,18 @@ export async function POST(request: Request) {
     const hashedPassword = await hash(password, 10);
 
     await db.collection('users').insertOne({
+      name,
       email,
       password: hashedPassword,
-      isAdmin: true, // This makes it an admin account
+      isAdmin: true, // This makes it a normal account
+      isDirector: false, // This makes it a director account
     });
 
     await client.close();
 
-    return NextResponse.json({ message: 'Admin account created successfully' }, { status: 201 });
+    return NextResponse.json({ message: 'Account created successfully' }, { status: 201 });
   } catch (error) {
-    console.error('Error creating admin account:', error);
+    console.error('Error creating account:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
