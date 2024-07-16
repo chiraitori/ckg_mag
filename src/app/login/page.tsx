@@ -10,11 +10,11 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
 
   useEffect(() => {
     if (status === 'authenticated') {
-      if (session.user?.isDirector) {
+      if (session?.user?.isDirector) {
         router.push('/director');
       } else {
         router.push('/dashboard');
@@ -33,6 +33,19 @@ export default function Login() {
 
       if (result?.error) {
         setError(result.error);
+      } else {
+        // Successful login, update the session
+        await update();
+        
+        // Fetch the updated session
+        const response = await fetch('/api/auth/session');
+        const updatedSession = await response.json();
+        
+        if (updatedSession?.user?.isDirector) {
+          router.push('/director');
+        } else {
+          router.push('/dashboard');
+        }
       }
     } catch (error) {
       setError('An error occurred. Please try again.');

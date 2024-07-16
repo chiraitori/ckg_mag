@@ -34,7 +34,7 @@ export default function DirectorDashboard() {
   if (status === 'loading') {
     return <div>Loading...</div>;
   }
-  if (!session?.user?.isAdmin) {
+  if (!session?.user?.isDirector) {
     router.push('/login');
     return null;
   }

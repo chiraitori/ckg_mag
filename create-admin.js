@@ -14,7 +14,7 @@ rl.question('Enter admin email: ', (email) => {
       const options = {
         hostname: 'localhost',
         port: 3000,
-        path: '/api/admin',
+        path: '/api/create/admin',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -33,7 +33,7 @@ rl.question('Enter admin email: ', (email) => {
           try {
             const parsedData = JSON.parse(responseData);
             if (res.statusCode === 201) {
-              console.log('Admin account created successfully');
+              console.log('Director account created successfully');
             } else {
               console.error('Error:', parsedData.error);
             }
