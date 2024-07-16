@@ -45,14 +45,14 @@ export default function Login() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
       <div className="w-full max-w-md">
-        <h1 className="text-3xl font-bold text-center mb-6">Sign in to your account</h1>
+        <h1 className="text-3xl font-bold text-center mb-6">Đăng Nhập</h1>
         <form onSubmit={handleSubmit} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
           <div className="mb-4">
             <input
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
               id="email"
               type="email"
-              placeholder="Email address"
+              placeholder="Đia chỉ email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -63,7 +63,7 @@ export default function Login() {
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline"
               id="password"
               type="password"
-              placeholder="Password"
+              placeholder="Mật khẩu"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -71,7 +71,7 @@ export default function Login() {
           </div>
           <div className="flex items-center justify-between mb-6">
             <Link href="/forgot-password" className="text-sm text-indigo-600 hover:text-indigo-800">
-              Forgot your password?
+              Quên mật khẩu?
             </Link>
           </div>
           <div className="flex items-center justify-between">
@@ -79,7 +79,7 @@ export default function Login() {
               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
               type="submit"
             >
-              Sign in
+              Đăng Nhập
             </button>
           </div>
         </form>

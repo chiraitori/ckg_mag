@@ -56,12 +56,12 @@ export default function DashboardContent() {
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-4xl font-bold">Chicken Farm Dashboard</h1>
+        <h1 className="text-4xl font-bold">Công Ty Thuận Nam Tiến</h1>
         <button
           onClick={handleLogout}
           className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
         >
-          Logout
+          Đang xuất
         </button>
       </div>
       <div className="flex items-center space-x-2">
@@ -72,7 +72,7 @@ export default function DashboardContent() {
         <span className="text-sm font-medium">{weatherData.temperature}°C</span>
       </div>
     </div>
-      <p className="mb-4">Welcome, {session.user?.name}</p>
+      <p className="mb-4">Xin Chào, {session.user?.name}</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div className="bg-white shadow rounded-lg p-4">
           <h2 className="text-xl font-semibold mb-2">Food Stock</h2>
@@ -87,8 +87,11 @@ export default function DashboardContent() {
         <Link href="/manage-food" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
           Manage Food
         </Link>
-        <Link href="/manage-medicine" className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+        <Link href="/manage-medicine" className="bg-pink-500 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded">
           Manage Medicine
+        </Link>
+        <Link href="/khác" className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+          Mục Khác
         </Link>
         {session.user?.isAdmin && (
           <Link href="/create-account" className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
