@@ -1,35 +1,68 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Trash2, Download } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { useSession } from "next-auth/react";
 import { format, toZonedTime } from 'date-fns-tz';
+import Select from 'react-select';
 
 interface Row {
   id: number;
   text: string;
   number: string;
-  price: string;
+  note: string;
+}
+
+interface InventoryItem {
+  value: string;
+  label: string;
 }
 
 const DynamicTable: React.FC = () => {
   const [rows, setRows] = useState<Row[]>([]);
-  const [currentInput, setCurrentInput] = useState<Omit<Row, 'id'>>({ text: '', number: '', price: '' });
+  const [currentInput, setCurrentInput] = useState<Omit<Row, 'id'>>({ text: '', number: '', note: '' });
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const { data: session } = useSession();
 
-  const handleInputChange = (field: 'text' | 'number' | 'price', value: string) => {
+  useEffect(() => {
+    fetchInventoryItems();
+  }, []);
+
+  const fetchInventoryItems = async () => {
+    try {
+      const response = await fetch('/api/inventory');
+      if (response.ok) {
+        const data: string[] = await response.json();
+        setInventoryItems(data.map(item => ({ value: item, label: item })));
+      } else {
+        console.error('Failed to fetch inventory items');
+      }
+    } catch (error) {
+      console.error('Error fetching inventory items:', error);
+    }
+  };
+
+  const handleInputChange = (field: 'text' | 'number' | 'note', value: string) => {
     setCurrentInput(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleSelectChange = (selectedOption: InventoryItem | null) => {
+    if (selectedOption) {
+      setCurrentInput(prev => ({ ...prev, text: selectedOption.value }));
+    } else {
+      setCurrentInput(prev => ({ ...prev, text: '' }));
+    }
+  };
+
   const addRow = () => {
-    if (currentInput.text || currentInput.number || currentInput.price) {
+    if (currentInput.text || currentInput.number || currentInput.note) {
       const newRow: Row = {
         id: Date.now(),
         ...currentInput
       };
       setRows([...rows, newRow]);
-      setCurrentInput({ text: '', number: '', price: '' });
+      setCurrentInput({ text: '', number: '', note: '' });
     }
   };
 
@@ -42,11 +75,11 @@ const DynamicTable: React.FC = () => {
     const worksheet = workbook.addWorksheet('Sheet1');
 
     // Add headers
-    worksheet.addRow(['Tên đồ', 'Số Lượng', 'Giá Thành']);
+    worksheet.addRow(['Tên đồ', 'Số Lượng', 'Ghi Chú']);
 
     // Add data
     rows.forEach(row => {
-      worksheet.addRow([row.text, row.number, row.price]);
+      worksheet.addRow([row.text, row.number, row.note]);
     });
 
     // Generate file name with date, time, and user name
@@ -75,12 +108,17 @@ const DynamicTable: React.FC = () => {
         <h2 className="text-xl font-bold mb-4">Thêm hàng mới</h2>
         <div className="mb-4">
           <label htmlFor="textInput" className="block mb-2">Tên đồ</label>
-          <input
+          <Select
             id="textInput"
-            type="text"
-            value={currentInput.text}
-            onChange={(e) => handleInputChange('text', e.target.value)}
-            className="w-full p-2 border rounded"
+            options={inventoryItems}
+            value={inventoryItems.find(item => item.value === currentInput.text)}
+            onChange={handleSelectChange}
+            onInputChange={(inputValue) => handleInputChange('text', inputValue)}
+            isClearable
+            isSearchable
+            placeholder="Select or type an item"
+            className="react-select-container"
+            classNamePrefix="react-select"
           />
         </div>
         <div className="mb-4">
@@ -94,12 +132,12 @@ const DynamicTable: React.FC = () => {
           />
         </div>
         <div className="mb-4">
-          <label htmlFor="priceInput" className="block mb-2">Giá thành:</label>
+          <label htmlFor="noteInput" className="block mb-2">Ghi Chú</label>
           <input
-            id="priceInput"
-            type="number"
-            value={currentInput.price}
-            onChange={(e) => handleInputChange('price', e.target.value)}
+            id="noteInput"
+            type="text"
+            value={currentInput.note}
+            onChange={(e) => handleInputChange('note', e.target.value)}
             className="w-full p-2 border rounded"
           />
         </div>
@@ -125,7 +163,7 @@ const DynamicTable: React.FC = () => {
             <tr className="bg-gray-100">
               <th className="border border-gray-300 p-2">Tên đồ</th>
               <th className="border border-gray-300 p-2">Số Lượng</th>
-              <th className="border border-gray-300 p-2">Giá Thành</th>
+              <th className="border border-gray-300 p-2">Ghi Chú</th>
               <th className="border border-gray-300 p-2">Xóa</th>
             </tr>
           </thead>
@@ -134,7 +172,7 @@ const DynamicTable: React.FC = () => {
               <tr key={row.id}>
                 <td className="border border-gray-300 p-2">{row.text}</td>
                 <td className="border border-gray-300 p-2">{row.number}</td>
-                <td className="border border-gray-300 p-2">{row.price}</td>
+                <td className="border border-gray-300 p-2">{row.note}</td>
                 <td className="border border-gray-300 p-2">
                   <button
                     onClick={() => deleteRow(row.id)}

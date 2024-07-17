@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 interface Farm {
   _id: string;
@@ -58,6 +59,11 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    router.push('/login');
+  };
+
   const handleSubmit = async (e: React.FormEvent, isNewFarm: boolean = false) => {
     e.preventDefault();
     const farmData = isNewFarm ? newFarm : selectedFarm;
@@ -101,7 +107,20 @@ export default function AdminDashboard() {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Admin Dashboard - Farm Management</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Admin Dashboard - Farm Management</h1>
+        <div className="flex space-x-4">
+          <Link href="/create-account" className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
+            Create Account
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+          >
+            Đang xuất
+          </button>
+        </div>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>

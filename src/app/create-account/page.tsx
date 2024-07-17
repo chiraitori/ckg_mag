@@ -1,15 +1,18 @@
 'use client';
 
 import React, { useState, useEffect, FormEvent } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
-const accountTypes = [
-  { value: 'user', label: 'User' },
-  { value: 'admin', label: 'Admin' },
-  { value: 'manager', label: 'Manager' },
-  { value: 'director', label: 'Director' },
-];
+interface AccountType {
+  value: string;
+  label: string;
+}
+
+interface Farm {
+  _id: string;
+  name: string;
+}
 
 interface DropdownOption {
   value: string;
@@ -24,6 +27,13 @@ interface DropdownProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
 }
+
+const accountTypes: AccountType[] = [
+  { value: 'user', label: 'User' },
+  { value: 'admin', label: 'Admin' },
+  { value: 'manager', label: 'Manager' },
+  { value: 'director', label: 'Director' },
+];
 
 const Dropdown: React.FC<DropdownProps> = ({ options, value, onChange, placeholder, isOpen, setIsOpen }) => (
   <div className="relative">
@@ -81,9 +91,9 @@ export default function CreateAccount() {
         if (!response.ok) {
           throw new Error('Failed to fetch farms');
         }
-        const data = await response.json();
+        const data: Farm[] = await response.json();
         if (Array.isArray(data) && data.length > 0) {
-          setFarms(data.map((f: { _id: string; name: string }) => ({ value: f._id, label: f.name })));
+          setFarms(data.map((f: Farm) => ({ value: f._id, label: f.name })));
         } else {
           setFarms([{ value: 'no-farm', label: 'No farms available' }]);
         }
@@ -97,6 +107,11 @@ export default function CreateAccount() {
     fetchFarms();
   }, []);
 
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    router.push('/login');
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
@@ -108,28 +123,29 @@ export default function CreateAccount() {
     }
 
     try {
-      const res = await fetch('/api/create/account', {
+      const res = await fetch(`/api/create/${accountType}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, email, password, accountType, farm }),
+        body: JSON.stringify({ name, email, password, farmId: farm }),
       });
 
-      const data = await res.json();
-      if (data.error) {
-        setError(data.error);
-      } else {
-        setSuccess('Account created successfully!');
-        setName('');
-        setEmail('');
-        setPassword('');
-        setAccountType('');
-        setFarm('');
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
       }
-    } catch (err) {
-      setError('An error occurred. Please try again.');
-    }
+
+      const data = await res.json();
+    setSuccess('Manager account created successfully!');
+    // Reset form fields
+    setName('');
+    setEmail('');
+    setPassword('');
+    setFarm('');
+  } catch (err) {
+    setError(err instanceof Error ? err.message : 'An error occurred. Please try again.');
+    console.error('Error creating manager account:', err);
+  }
   };
 
   if (status === 'loading') {
@@ -193,7 +209,7 @@ export default function CreateAccount() {
           </div>
           <div className="mb-6">
             <Dropdown
-              options={farms.map(f => ({ value: f.value, label: f.label }))}
+              options={farms}
               value={farm}
               onChange={setFarm}
               placeholder="Select farm"

@@ -16,6 +16,10 @@ export default function Login() {
     if (status === 'authenticated') {
       if (session?.user?.isDirector) {
         router.push('/director');
+      } else if (session?.user?.isAdmin) {
+        router.push('/admin-dashboard');
+      } else if (session?.user?.isManager) {
+        router.push('/manager-dashboard');
       } else {
         router.push('/dashboard');
       }
@@ -43,6 +47,10 @@ export default function Login() {
         
         if (updatedSession?.user?.isDirector) {
           router.push('/director');
+        } else if (updatedSession?.user?.isAdmin) {
+          router.push('/admin-dashboard');
+        } else if (updatedSession?.user?.isManager) {
+          router.push('/manager-dashboard');
         } else {
           router.push('/dashboard');
         }

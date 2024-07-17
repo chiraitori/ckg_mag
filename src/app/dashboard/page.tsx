@@ -90,11 +90,6 @@ export default function DashboardContent() {
         <Link href="/more" className="bg-pink-500 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded">
           Thuốc và các thứ khác
         </Link>
-        {session.user?.isAdmin && (
-          <Link href="/create-account" className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
-            Create Account
-          </Link>
-        )}
       </div>
     </div>
   );

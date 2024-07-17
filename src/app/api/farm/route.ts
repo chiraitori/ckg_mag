@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
         const id = searchParams.get('id');
-
+        
         const { db } = await connectToDatabase();
         const farmsCollection = db.collection('farms');
 

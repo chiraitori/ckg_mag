@@ -44,7 +44,7 @@ export async function connectToDatabase(): Promise<CachedConnection> {
   }
 
   client = await clientPromise;
-  const db = client.db(); // Assumes your database name is in the MONGODB_URI
+  const db = client.db(process.env.MONGODB_DB); // Assumes your database name is in the MONGODB_URI
 
   cached = { client, db };
   return cached;
