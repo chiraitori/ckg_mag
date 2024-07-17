@@ -28,6 +28,7 @@ export async function POST(request: Request) {
       password: hashedPassword,
       isAdmin: false, // This makes it a normal account
       isDirector: false, // This makes it a director account
+      isManager: true, // This makes it a manager account
     });
 
     await client.close();

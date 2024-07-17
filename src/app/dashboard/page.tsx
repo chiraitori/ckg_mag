@@ -85,13 +85,10 @@ export default function DashboardContent() {
       </div>
       <div className="flex space-x-4">
         <Link href="/manage-food" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-          Manage Food
+          Thức ăn
         </Link>
-        <Link href="/manage-medicine" className="bg-pink-500 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded">
-          Manage Medicine
-        </Link>
-        <Link href="/khác" className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-          Mục Khác
+        <Link href="/more" className="bg-pink-500 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded">
+          Thuốc và các thứ khác
         </Link>
         {session.user?.isAdmin && (
           <Link href="/create-account" className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">

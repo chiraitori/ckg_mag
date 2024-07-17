@@ -26,7 +26,7 @@ export async function POST(request: Request) {
       name,
       email,
       password: hashedPassword,
-      isAdmin: true, // This makes it a normal account
+      isAdmin: false, // This makes it a normal account
       isDirector: false, // This makes it a director account
       isManager: false,  // This makes it a manager account (replace with your actual role)
     });

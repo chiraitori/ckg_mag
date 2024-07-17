@@ -115,10 +115,7 @@ const DynamicTable: React.FC = () => {
       <div className="w-full md:w-2/3">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Bảng thống kê</h2>
-          <button
-            onClick={exportToExcel}
-            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center"
-          >
+          <button onClick={exportToExcel} className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center">
             <Download size={20} className="mr-2" />
             Xuất Excel
           </button>

@@ -24,8 +24,10 @@ declare module 'next-auth' {
     id: string;
     name: string;
     email: string;
+    farm?: string;
     isAdmin?: boolean;
     isDirector?: boolean;
+    isManager?: boolean;
   }
 
   interface Session {

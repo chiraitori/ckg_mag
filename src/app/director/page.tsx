@@ -5,7 +5,7 @@ import React from 'react'
 import MetricCard from '../../components/MetricCard'
 import SalesPipeline from '../../components/SalesPipeline'
 import SalesTrend from '../../components/SalesTrend'
-import { signIn, useSession } from 'next-auth/react';
+import { signIn, useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -39,6 +39,11 @@ export default function DirectorDashboard() {
     return null;
   }
 
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    router.push('/login');
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
@@ -62,6 +67,12 @@ export default function DirectorDashboard() {
   return (
     <div className="bg-slate-800 p-6 text-white">
       <h1 className="text-2xl font-bold mb-4">Sales Overview</h1>
+      <button
+          onClick={handleLogout}
+          className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 left rounded"
+        >
+          Đang xuất
+        </button>
       <p className="mb-4">Welcome, {session.user?.name}</p>
       <div className="grid grid-cols-6 gap-4 mb-4">
         <MetricCard title="Revenue" value={mockData.revenue} change={mockData.revenueChange} />

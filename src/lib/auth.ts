@@ -38,7 +38,9 @@ export const authOptions: NextAuthOptions = {
             id: user._id.toString(),
             name: user.name,  
             email: user.email,
+            farm: user.farm,
             isAdmin: user.isAdmin || false,
+            isManager: user.isManager || false,  // This makes it a manager account (replace with your actual role)
             isDirector: user.isDirector || false
           };
         }
@@ -52,7 +54,9 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.name = user.name;  
         token.email = user.email;
+        token.farm = user.farm;
         token.isAdmin = user.isAdmin;
+        token.isManager = user.isManager; 
         token.isDirector = user.isDirector;
       }
       return token;
@@ -62,9 +66,10 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string;
         session.user.name = token.name as string;  
         session.user.email = token.email as string;
+        session.user.farm = token.farm as string;
         session.user.isAdmin = token.isAdmin as boolean;
+        session.user.isManager = token.isManager as boolean;
         session.user.isDirector = token.isDirector as boolean;
-
       }
       return session;
     }
