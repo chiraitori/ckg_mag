@@ -30,6 +30,7 @@ export async function POST(request: Request) {
       isAdmin: false,
       isDirector: false,
       isManager: false,
+      seller: true,
       assignedFarms: [new ObjectId(farmId)]
     });
 

@@ -14,6 +14,12 @@ interface Row {
   note: string;
 }
 
+interface Farm {
+  _id: string;
+  name: string;
+  stuff: string[];
+}
+
 interface InventoryItem {
   value: string;
   label: string;
@@ -22,48 +28,65 @@ interface InventoryItem {
 const DynamicTable: React.FC = () => {
   const [rows, setRows] = useState<Row[]>([]);
   const [currentInput, setCurrentInput] = useState<Omit<Row, 'id'>>({ text: '', number: '', note: '' });
+  const [customItem, setCustomItem] = useState('');
+  const [userFarm, setUserFarm] = useState<Farm | null>(null);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const { data: session } = useSession();
 
   useEffect(() => {
-    fetchInventoryItems();
+    fetchUserFarm();
   }, []);
 
-  const fetchInventoryItems = async () => {
+  const fetchUserFarm = async () => {
     try {
-      const response = await fetch('/api/inventory');
+      const response = await fetch('/api/farms/user');
       if (response.ok) {
-        const data: string[] = await response.json();
-        setInventoryItems(data.map(item => ({ value: item, label: item })));
+        const farm: Farm = await response.json();
+        setUserFarm(farm);
+        setInventoryItems(farm.stuff.map(item => ({ value: item, label: item })));
       } else {
-        console.error('Failed to fetch inventory items');
+        console.error('Failed to fetch user farm');
       }
     } catch (error) {
-      console.error('Error fetching inventory items:', error);
+      console.error('Error fetching user farm:', error);
     }
   };
 
-  const handleInputChange = (field: 'text' | 'number' | 'note', value: string) => {
+  const handleInputChange = (field: 'number' | 'note', value: string) => {
     setCurrentInput(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSelectChange = (selectedOption: InventoryItem | null) => {
     if (selectedOption) {
       setCurrentInput(prev => ({ ...prev, text: selectedOption.value }));
+      setCustomItem('');
     } else {
       setCurrentInput(prev => ({ ...prev, text: '' }));
     }
   };
 
+  const handleCustomItemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCustomItem(e.target.value);
+    setCurrentInput(prev => ({ ...prev, text: '' }));
+  };
+
   const addRow = () => {
-    if (currentInput.text || currentInput.number || currentInput.note) {
+    const itemName = customItem || currentInput.text;
+    if (itemName && currentInput.number) {
       const newRow: Row = {
         id: Date.now(),
-        ...currentInput
+        text: itemName,
+        number: currentInput.number,
+        note: currentInput.note
       };
       setRows([...rows, newRow]);
-      setCurrentInput({ text: '', number: '', note: '' });
+      resetForm();
     }
+  };
+
+  const resetForm = () => {
+    setCurrentInput({ text: '', number: '', note: '' });
+    setCustomItem('');
   };
 
   const deleteRow = (id: number) => {
@@ -74,15 +97,12 @@ const DynamicTable: React.FC = () => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Sheet1');
 
-    // Add headers
     worksheet.addRow(['Tên đồ', 'Số Lượng', 'Ghi Chú']);
 
-    // Add data
     rows.forEach(row => {
       worksheet.addRow([row.text, row.number, row.note]);
     });
 
-    // Generate file name with date, time, and user name
     const now = new Date();
     const timeZone = 'Asia/Ho_Chi_Minh';
     const zonedDate = toZonedTime(now, timeZone);
@@ -90,7 +110,6 @@ const DynamicTable: React.FC = () => {
     const userName = session?.user?.name || 'Unknown';
     const fileName = `${userName}_${dateTime}.xlsx`;
 
-    // Generate Excel file
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = window.URL.createObjectURL(blob);
@@ -105,7 +124,12 @@ const DynamicTable: React.FC = () => {
     <div className="p-4 flex flex-col md:flex-row">
       {/* Input form on the left */}
       <div className="w-full md:w-1/3 pr-4 mb-4 md:mb-0">
-        <h2 className="text-xl font-bold mb-4">Thêm hàng mới</h2>
+        <h2 className="text-xl font-bold mb-4">Add to Inventory</h2>
+        {userFarm && (
+          <div className="mb-4">
+            <p className="font-semibold">Farm: {userFarm.name}</p>
+          </div>
+        )}
         <div className="mb-4">
           <label htmlFor="textInput" className="block mb-2">Tên đồ</label>
           <Select
@@ -113,20 +137,24 @@ const DynamicTable: React.FC = () => {
             options={inventoryItems}
             value={inventoryItems.find(item => item.value === currentInput.text)}
             onChange={handleSelectChange}
-            onInputChange={(inputValue) => handleInputChange('text', inputValue)}
             isClearable
             isSearchable
-            placeholder="Select or type an item"
+            placeholder="Select an item"
             className="react-select-container"
             classNamePrefix="react-select"
+            isDisabled={!!customItem}
           />
-          <label htmlFor="textInput" className="block mb-2">Tên đồ khác</label>
+        </div>
+        <div className="mb-4">
+          <label htmlFor="customItemInput" className="block mb-2">Tên Đồ (Custom)</label>
           <input
-            id="textInput"
+            id="customItemInput"
             type="text"
-            value={currentInput.text}
-            onChange={(e) => handleInputChange('text', e.target.value)}
+            value={customItem}
+            onChange={handleCustomItemChange}
             className="w-full p-2 border rounded"
+            placeholder="Enter custom item name"
+            disabled={!!currentInput.text}
           />
         </div>
         <div className="mb-4">
@@ -153,17 +181,17 @@ const DynamicTable: React.FC = () => {
           onClick={addRow}
           className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
         >
-          Thêm
+          Add to Inventory
         </button>
       </div>
 
       {/* Table on the right */}
       <div className="w-full md:w-2/3">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Bảng thống kê</h2>
+          <h2 className="text-xl font-bold">Inventory Table</h2>
           <button onClick={exportToExcel} className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center">
             <Download size={20} className="mr-2" />
-            Xuất Excel
+            Export to Excel
           </button>
         </div>
         <table className="w-full border-collapse border border-gray-300">

@@ -35,6 +35,11 @@ const accountTypes: AccountType[] = [
   { value: 'director', label: 'Director' },
 ];
 
+const userRoles: DropdownOption[] = [
+  { value: 'seller', label: 'Seller' },
+  { value: 'feed', label: 'Feed' },
+];
+
 const Dropdown: React.FC<DropdownProps> = ({ options, value, onChange, placeholder, isOpen, setIsOpen }) => (
   <div className="relative">
     <button
@@ -75,36 +80,46 @@ export default function CreateAccount() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [accountType, setAccountType] = useState('');
+  const [userRole, setUserRole] = useState('');
   const [farm, setFarm] = useState('');
   const [farms, setFarms] = useState<DropdownOption[]>([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isAccountTypeDropdownOpen, setIsAccountTypeDropdownOpen] = useState(false);
+  const [isUserRoleDropdownOpen, setIsUserRoleDropdownOpen] = useState(false);
   const [isFarmDropdownOpen, setIsFarmDropdownOpen] = useState(false);
 
-  const isFormValid = name && email && password && accountType && (farm || farms.length === 0);
+  const isFormValid = name && email && password && accountType && 
+    (accountType !== 'user' || (accountType === 'user' && userRole)) && 
+    (farm || farms.length === 0);
+
+  const fetchFarms = async () => {
+    try {
+      const response = await fetch('/api/farm');
+      if (!response.ok) {
+        throw new Error('Failed to fetch farms');
+      }
+      const data: Farm[] = await response.json();
+      if (Array.isArray(data) && data.length > 0) {
+        setFarms(data.map((f: Farm) => ({ value: f._id, label: f.name })));
+      } else {
+        setFarms([{ value: 'no-farm', label: 'No farms available' }]);
+      }
+    } catch (err) {
+      console.error('Failed to fetch farms:', err);
+      setError('Failed to load farms. Using default option.');
+      setFarms([{ value: 'default-farm', label: 'Default Farm' }]);
+    }
+  };
 
   useEffect(() => {
-    const fetchFarms = async () => {
-      try {
-        const response = await fetch('/api/farm');
-        if (!response.ok) {
-          throw new Error('Failed to fetch farms');
-        }
-        const data: Farm[] = await response.json();
-        if (Array.isArray(data) && data.length > 0) {
-          setFarms(data.map((f: Farm) => ({ value: f._id, label: f.name })));
-        } else {
-          setFarms([{ value: 'no-farm', label: 'No farms available' }]);
-        }
-      } catch (err) {
-        console.error('Failed to fetch farms:', err);
-        setError('Failed to load farms. Using default option.');
-        setFarms([{ value: 'default-farm', label: 'Default Farm' }]);
-      }
-    };
+    fetchFarms(); // Initial fetch
 
-    fetchFarms();
+    // Set up auto-refresh interval
+    const intervalId = setInterval(fetchFarms, 10 * 1000); // Fetch every 1 second
+
+    // Clean up function to clear the interval when the component unmounts
+    return () => clearInterval(intervalId);
   }, []);
 
   const handleLogout = async () => {
@@ -123,12 +138,31 @@ export default function CreateAccount() {
     }
 
     try {
-      const res = await fetch(`/api/create/${accountType}`, {
+      let endpoint = '/api/create/';
+      
+      if (accountType === 'user') {
+        if (userRole === 'seller') {
+          endpoint += 'user/seller';
+        } else if (userRole === 'feed') {
+          endpoint += 'user/feed';
+        } else {
+          throw new Error('Invalid user role selected');
+        }
+      } else {
+        endpoint += accountType;
+      }
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, email, password, farmId: farm }),
+        body: JSON.stringify({ 
+          name, 
+          email, 
+          password, 
+          farmId: farm,
+        }),
       });
 
       if (!res.ok) {
@@ -136,16 +170,18 @@ export default function CreateAccount() {
       }
 
       const data = await res.json();
-    setSuccess('Manager account created successfully!');
-    // Reset form fields
-    setName('');
-    setEmail('');
-    setPassword('');
-    setFarm('');
-  } catch (err) {
-    setError(err instanceof Error ? err.message : 'An error occurred. Please try again.');
-    console.error('Error creating manager account:', err);
-  }
+      setSuccess('Account created successfully!');
+      // Reset form fields
+      setName('');
+      setEmail('');
+      setPassword('');
+      setFarm('');
+      setAccountType('');
+      setUserRole('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred. Please try again.');
+      console.error('Error creating account:', err);
+    }
   };
 
   if (status === 'loading') {
@@ -201,12 +237,29 @@ export default function CreateAccount() {
             <Dropdown
               options={accountTypes}
               value={accountType}
-              onChange={setAccountType}
+              onChange={(value) => {
+                setAccountType(value);
+                if (value !== 'user') {
+                  setUserRole('');
+                }
+              }}
               placeholder="Select account type"
               isOpen={isAccountTypeDropdownOpen}
               setIsOpen={setIsAccountTypeDropdownOpen}
             />
           </div>
+          {accountType === 'user' && (
+            <div className="mb-4">
+              <Dropdown
+                options={userRoles}
+                value={userRole}
+                onChange={setUserRole}
+                placeholder="Select user role"
+                isOpen={isUserRoleDropdownOpen}
+                setIsOpen={setIsUserRoleDropdownOpen}
+              />
+            </div>
+          )}
           <div className="mb-6">
             <Dropdown
               options={farms}

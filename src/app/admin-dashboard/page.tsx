@@ -222,7 +222,7 @@ export default function AdminDashboard() {
       {error && <p className="text-red-500 mt-4">{error}</p>}
       {success && <p className="text-green-500 mt-4">{success}</p>}
       
-      <CreateAccount />
+      <CreateAccount/>
     </div>
   );
 }
