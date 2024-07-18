@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 import { hash } from 'bcrypt';
 
 export async function POST(request: Request) {
   try {
-    const { name, email, password } = await request.json();
+    const { name, email, password, farmId } = await request.json();
 
-    if (!name || !email || !password) {
-      return NextResponse.json({ error: 'Name, email, and password are required' }, { status: 400 });
+    if (!name || !email || !password || !farmId) {
+      return NextResponse.json({ error: 'Name, email, password, and farmId are required' }, { status: 400 });
     }
 
     const dbName = process.env.MONGODB_DB as string;
@@ -22,20 +22,30 @@ export async function POST(request: Request) {
 
     const hashedPassword = await hash(password, 10);
 
-    await db.collection('users').insertOne({
+    // Insert the new manager user
+    const insertResult = await db.collection('users').insertOne({
       name,
       email,
       password: hashedPassword,
-      isAdmin: false, // This makes it a normal account
-      isDirector: true, // This makes it a director account
-      isManager: false,  // This makes it a manager account (replace with your actual role)
+      isAdmin: false,
+      isDirector: true,
+      isManager: false,
+      assignedFarms: [new ObjectId(farmId)]
     });
+
+    const newManagerId = insertResult.insertedId;
+
+    // Update the farm to include this manager
+    await db.collection('farms').updateOne(
+      { _id: new ObjectId(farmId) },
+      { $set: { managerId: newManagerId } }
+    );
 
     await client.close();
 
-    return NextResponse.json({ message: 'Account created successfully' }, { status: 201 });
+    return NextResponse.json({ message: 'Manager account created and farm assigned successfully' }, { status: 201 });
   } catch (error) {
-    console.error('Error creating account:', error);
+    console.error('Error creating manager account:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

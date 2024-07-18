@@ -7,20 +7,22 @@ const FARM_LONGITUDE = 106.6478494;
 
 interface WeatherData {
   weather: string;
+  description: string;
   temperature: number;
 }
 
 let cachedWeather: WeatherData | null = null;
 let lastFetchTime = 0;
-const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes in milliseconds
+const CACHE_DURATION = 5 * 60 * 1000; // 5 min in milliseconds
 
 async function fetchWeatherData(): Promise<WeatherData> {
   const apiKey = process.env.OPENWEATHERMAP_API_KEY;
-  const url = `https://api.openweathermap.org/data/2.5/weather?lat=${FARM_LATITUDE}&lon=${FARM_LONGITUDE}&appid=${apiKey}&units=metric`;
+  const url = `https://api.openweathermap.org/data/2.5/weather?lat=${FARM_LATITUDE}&lon=${FARM_LONGITUDE}&appid=${apiKey}&units=metric&lang=vi`;
 
   const response = await axios.get(url);
   return {
     weather: response.data.weather[0].main.toLowerCase(),
+    description: response.data.weather[0].description,
     temperature: Math.round(response.data.main.temp)
   };
 }

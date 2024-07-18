@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.4.1",
+    "@headlessui/react": "^2.1.2",
     "@types/nodemailer": "^6.4.15",
     "axios": "^1.7.2",
     "bcrypt": "^5.1.1",

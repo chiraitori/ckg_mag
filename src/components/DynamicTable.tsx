@@ -120,6 +120,14 @@ const DynamicTable: React.FC = () => {
             className="react-select-container"
             classNamePrefix="react-select"
           />
+          <label htmlFor="textInput" className="block mb-2">Tên đồ khác</label>
+          <input
+            id="textInput"
+            type="text"
+            value={currentInput.text}
+            onChange={(e) => handleInputChange('text', e.target.value)}
+            className="w-full p-2 border rounded"
+          />
         </div>
         <div className="mb-4">
           <label htmlFor="numberInput" className="block mb-2">Số lượng:</label>

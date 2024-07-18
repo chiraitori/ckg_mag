@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import CreateAccount from '../../components/CreateAccount';
 
 interface Farm {
   _id: string;
@@ -110,9 +110,6 @@ export default function AdminDashboard() {
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Admin Dashboard - Farm Management</h1>
         <div className="flex space-x-4">
-          <Link href="/create-account" className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
-            Create Account
-          </Link>
           <button
             onClick={handleLogout}
             className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
@@ -121,7 +118,6 @@ export default function AdminDashboard() {
           </button>
         </div>
       </div>
-      
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <h2 className="text-xl font-semibold mb-2">Farms List</h2>
@@ -180,7 +176,6 @@ export default function AdminDashboard() {
             <p>Select a farm to edit</p>
           )}
         </div>
-
         <div>
           <h2 className="text-xl font-semibold mb-2">Add New Farm</h2>
           <form onSubmit={(e) => handleSubmit(e, true)} className="space-y-4">
@@ -226,6 +221,8 @@ export default function AdminDashboard() {
       
       {error && <p className="text-red-500 mt-4">{error}</p>}
       {success && <p className="text-green-500 mt-4">{success}</p>}
+      
+      <CreateAccount />
     </div>
   );
 }

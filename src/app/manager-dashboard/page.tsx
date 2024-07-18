@@ -5,6 +5,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import axios from 'axios';
+import { Sun, Cloud, CloudRain, CloudLightning, CloudSnow, Wind, Umbrella, Cloudy } from 'lucide-react';
 
 interface Farm {
   _id: string;
@@ -21,6 +23,58 @@ export default function ManagerDashboard() {
   const [newItemName, setNewItemName] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+
+  interface WeatherData {
+    weather: string;
+    temperature: number;
+    description: string;
+  }
+  
+  const [weatherData, setWeatherData] = useState<WeatherData>({ weather: 'clear', temperature: 30, description: 'Clear sky' });
+
+  useEffect(() => {
+    const fetchWeather = async () => {
+      try {
+        const response = await axios.get('/api/weather');
+        setWeatherData(response.data);
+      } catch (error) {
+        console.error('Error fetching weather:', error);
+      }
+    };
+
+    fetchWeather();
+    // Fetch every 5 min to match the server cache duration
+    const interval = setInterval(fetchWeather, 5 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const getWeatherIcon = (weather: string) => {
+    const iconProps = { size: 24, className: "text-gray-700" };
+    switch (weather.toLowerCase()) {
+      case 'clear':
+        return <Sun {...iconProps} className="text-yellow-500" />;
+      case 'clouds':
+        return <Cloud {...iconProps} className="text-blue-300" />;
+      case 'rain':
+        return <CloudRain {...iconProps} className="text-blue-500" />;
+      case 'drizzle':
+        return <CloudRain {...iconProps} className="text-blue-400" />;
+      case 'thunderstorm':
+        return <CloudLightning {...iconProps} className="text-purple-500" />;
+      case 'snow':
+        return <CloudSnow {...iconProps} className="text-blue-200" />;
+      case 'mist':
+      case 'fog':
+        return <Cloudy {...iconProps} className="text-gray-400" />;
+      case 'haze':
+        return <Wind {...iconProps} className="text-gray-500" />;
+      default:
+        return <Umbrella {...iconProps} />;
+    }
+  };
+
 
   useEffect(() => {
     fetchFarms();
@@ -123,6 +177,14 @@ export default function ManagerDashboard() {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <h2 className="text-xl font-semibold mb-2">Thời Tiết</h2>
+          <div className="flex items-center space-x-2">
+            {getWeatherIcon(weatherData.weather)}
+            <div>
+              <p className="text-lg font-semibold">{weatherData.temperature}°C</p>
+              <p>{weatherData.description}</p>
+            </div>
+          </div>
         <div>
           <h2 className="text-xl font-semibold mb-2">Farms</h2>
           <ul className="space-y-2">
