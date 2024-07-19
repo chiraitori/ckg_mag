@@ -39,6 +39,7 @@ export const authOptions: NextAuthOptions = {
             name: user.name,  
             email: user.email,
             farm: user.farm,
+            isSeller: user.isSeller || false,  // This makes it a seller account (replace with your actual role)
             isAdmin: user.isAdmin || false,
             isManager: user.isManager || false,  // This makes it a manager account (replace with your actual role)
             isDirector: user.isDirector || false
@@ -55,6 +56,7 @@ export const authOptions: NextAuthOptions = {
         token.name = user.name;  
         token.email = user.email;
         token.farm = user.farm;
+        token.isSeller = user.isSeller;
         token.isAdmin = user.isAdmin;
         token.isManager = user.isManager; 
         token.isDirector = user.isDirector;
@@ -67,6 +69,7 @@ export const authOptions: NextAuthOptions = {
         session.user.name = token.name as string;  
         session.user.email = token.email as string;
         session.user.farm = token.farm as string;
+        session.user.isSeller = token.isSeller as boolean;  // This makes it a seller account (replace with your actual role)
         session.user.isAdmin = token.isAdmin as boolean;
         session.user.isManager = token.isManager as boolean;
         session.user.isDirector = token.isDirector as boolean;

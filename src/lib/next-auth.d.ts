@@ -28,6 +28,7 @@ declare module 'next-auth' {
     isAdmin?: boolean;
     isDirector?: boolean;
     isManager?: boolean;
+    isSeller?: boolean;
   }
 
   interface Session {

@@ -20,8 +20,10 @@ export default function Login() {
         router.push('/admin-dashboard');
       } else if (session?.user?.isManager) {
         router.push('/manager-dashboard');
+      } else if (session?.user?.isSeller) {
+        router.push('/selling-dashboard');
       } else {
-        router.push('/dashboard');
+        router.push('/worker-dashboard');
       }
     }
   }, [session, status, router]);
@@ -51,8 +53,10 @@ export default function Login() {
           router.push('/admin-dashboard');
         } else if (updatedSession?.user?.isManager) {
           router.push('/manager-dashboard');
+        } else if (updatedSession?.user?.isSeller) {
+          router.push('/selling-dashboard');
         } else {
-          router.push('/dashboard');
+          router.push('/worker-dashboard');
         }
       }
     } catch (error) {
