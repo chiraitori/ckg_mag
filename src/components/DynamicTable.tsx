@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Trash2, Download } from 'lucide-react';
+import { Trash2, Download, Upload } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { useSession } from "next-auth/react";
 import { format, toZonedTime } from 'date-fns-tz';
@@ -120,6 +120,44 @@ const DynamicTable: React.FC = () => {
     window.URL.revokeObjectURL(url);
   };
 
+  const uploadToDatabase = async () => {
+    if (!userFarm) {
+      console.error('No user farm found');
+      return;
+    }
+
+    const dataToUpload = {
+      farmId: userFarm._id,
+      items: rows.map(row => ({
+        name: row.text,
+        quantity: row.number,
+        note: row.note
+      })),
+      uploadDate: new Date().toISOString()
+    };
+
+    try {
+      const response = await fetch('/api/inventory/upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dataToUpload),
+      });
+
+      if (response.ok) {
+        alert('Data uploaded successfully!');
+        // Optionally, clear the table after successful upload
+        setRows([]);
+      } else {
+        alert('Failed to upload data. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error uploading data:', error);
+      alert('An error occurred while uploading data.');
+    }
+  };
+
   return (
     <div className="p-4 flex flex-col md:flex-row">
       {/* Input form on the left */}
@@ -189,10 +227,16 @@ const DynamicTable: React.FC = () => {
       <div className="w-full md:w-2/3">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Inventory Table</h2>
-          <button onClick={exportToExcel} className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center">
-            <Download size={20} className="mr-2" />
-            Export to Excel
-          </button>
+          <div>
+            <button onClick={exportToExcel} className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center mr-2">
+              <Download size={20} className="mr-2" />
+              Export to Excel
+            </button>
+            <button onClick={uploadToDatabase} className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center">
+              <Upload size={20} className="mr-2" />
+              Upload to Database
+            </button>
+          </div>
         </div>
         <table className="w-full border-collapse border border-gray-300">
           <thead>
