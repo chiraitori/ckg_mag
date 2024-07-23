@@ -1,6 +1,20 @@
 // app/api/inventory/calendar/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
+export const dynamic = 'force-dynamic';
+
+interface InventoryEntry {
+  uploadDate: string;
+  farmId: string;
+  items: Array<{ name: string; quantity: number; note: string }>;
+}
+
+interface CalendarData {
+  [date: string]: Array<{
+    farmId: string;
+    items: Array<{ name: string; quantity: number; note: string }>;
+  }>;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     console.log('Fetching data for range:', startDate, 'to', endDate);
 
-    const inventoryData = await db.collection('inventory').find({
+    const inventoryData = await db.collection<InventoryEntry>('inventory').find({
       uploadDate: { 
         $gte: startDate.toISOString(), 
         $lte: endDate.toISOString() 
@@ -28,7 +42,7 @@ export async function GET(request: NextRequest) {
 
     console.log('Raw inventory data:', inventoryData);
 
-    const calendarData = inventoryData.reduce((acc, entry) => {
+    const calendarData = inventoryData.reduce<CalendarData>((acc, entry) => {
       const date = new Date(entry.uploadDate).toISOString().split('T')[0];
       if (!acc[date]) {
         acc[date] = [];

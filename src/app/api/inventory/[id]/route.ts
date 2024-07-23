@@ -1,4 +1,3 @@
-// app/api/inventory/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
@@ -21,7 +20,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       { returnDocument: 'after' }
     );
 
-    if (!result.value) {
+    if (!result || !result.value) {
       return NextResponse.json({ message: 'Inventory item not found' }, { status: 404 });
     }
 
