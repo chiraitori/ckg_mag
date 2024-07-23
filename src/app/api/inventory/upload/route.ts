@@ -1,4 +1,3 @@
-// app/api/inventory/upload/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 

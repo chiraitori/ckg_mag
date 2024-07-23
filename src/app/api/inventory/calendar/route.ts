@@ -1,4 +1,3 @@
-// app/api/inventory/calendar/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 export const dynamic = 'force-dynamic';
@@ -39,8 +38,6 @@ export async function GET(request: NextRequest) {
         $lte: endDate.toISOString() 
       }
     }).toArray();
-
-    console.log('Raw inventory data:', inventoryData);
 
     const calendarData = inventoryData.reduce<CalendarData>((acc, entry) => {
       const date = new Date(entry.uploadDate).toISOString().split('T')[0];
