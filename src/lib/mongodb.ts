@@ -18,8 +18,6 @@ interface CachedConnection {
 let cached: CachedConnection | null = null;
 
 if (process.env.NODE_ENV === 'development') {
-  // In development mode, use a global variable so that the value
-  // is preserved across module reloads caused by HMR (Hot Module Replacement).
   let globalWithMongo = global as typeof globalThis & {
     _mongoClientPromise?: Promise<MongoClient>;
   };
@@ -29,25 +27,39 @@ if (process.env.NODE_ENV === 'development') {
   }
   clientPromise = globalWithMongo._mongoClientPromise;
 } else {
-  // In production mode, it's best to not use a global variable.
   client = new MongoClient(uri, options);
   clientPromise = client.connect();
 }
 
 export async function connectToDatabase(): Promise<CachedConnection> {
+  console.log('Attempting to connect to database');
+  
   if (cached) {
+    console.log('Using cached database connection');
     return cached;
   }
 
   if (!clientPromise) {
+    console.error('MongoDB client promise is not initialized');
     throw new Error('MongoDB client promise is not initialized');
   }
 
-  client = await clientPromise;
-  const db = client.db(process.env.MONGODB_DB); // Assumes your database name is in the MONGODB_URI
+  try {
+    client = await clientPromise;
+    console.log('Successfully connected to MongoDB');
+    
+    const dbName = process.env.MONGODB_DB || new URL(uri).pathname.substr(1);
+    console.log(`Using database: ${dbName}`);
+    
+    const db = client.db(dbName);
 
-  cached = { client, db };
-  return cached;
+    cached = { client, db };
+    console.log('Database connection cached');
+    return cached;
+  } catch (error) {
+    console.error('Error connecting to database:', error);
+    throw error;
+  }
 }
 
 export { clientPromise };

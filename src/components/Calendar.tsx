@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { ChevronUp, ChevronDown, Edit2, Save, X } from 'lucide-react';
 
 interface InventoryItem {
@@ -12,6 +13,8 @@ interface InventoryEntry {
   farmId: string;
   items: InventoryItem[];
   uploadDate: string;
+  lastEditedBy?: string;
+  lastEditedAt?: string;
 }
 
 interface CalendarData {
@@ -19,6 +22,7 @@ interface CalendarData {
 }
 
 const Calendar: React.FC = () => {
+  const { data: session } = useSession();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [calendarData, setCalendarData] = useState<CalendarData>({});
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -41,27 +45,28 @@ const Calendar: React.FC = () => {
         throw new Error('Failed to fetch calendar data');
       }
       const data: CalendarData = await response.json();
-      console.log('Fetched calendar data:', data);
+      console.log('Fetched calendar data:', JSON.stringify(data, null, 2));
       setCalendarData(data);
     } catch (error) {
       console.error('Error fetching calendar data:', error);
     }
   };
 
-  const updateInventoryItem = async (documentId: string, farmId: string, updatedItems: InventoryItem[]) => {
-    console.log('Attempting to update item:', { documentId, farmId, updatedItems });
+  const updateInventoryItem = async (entry: InventoryEntry, updatedItem: InventoryItem, index: number) => {
+    console.log('Attempting to update item:', { entry, updatedItem, index });
     try {
-      if (!documentId) {
-        console.error('Invalid document ID:', documentId);
-        throw new Error('Invalid document ID');
-      }
+      const updatedItems = [...entry.items];
+      updatedItems[index] = updatedItem;
   
       const updateData = {
-        _id: documentId,
-        farmId: farmId,
+        _id: entry._id,
+        farmId: entry.farmId,
         items: updatedItems,
-        uploadDate: new Date().toISOString()
+        uploadDate: entry.uploadDate, // Keep the original upload date
+        lastEditedBy: session?.user?.name || 'Unknown User',
+        lastEditedAt: new Date().toISOString()
       };
+  
       console.log('Sending update data:', JSON.stringify(updateData, null, 2));
   
       const response = await fetch('/api/inventory/update', {
@@ -72,35 +77,29 @@ const Calendar: React.FC = () => {
         body: JSON.stringify(updateData),
       });
       console.log('Response status:', response.status);
-      const responseText = await response.text();
-      console.log('Raw response text:', responseText);
-  
-      let responseData;
-      try {
-        responseData = JSON.parse(responseText);
-        console.log('Parsed response data:', responseData);
-      } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
-      }
+      const responseData = await response.json();
+      console.log('Response data:', JSON.stringify(responseData, null, 2));
   
       if (!response.ok) {
-        throw new Error(`Failed to update inventory item: ${responseText}`);
+        throw new Error(`Failed to update inventory item: ${responseData.message}`);
       }
   
-      if (responseData) {
-        setCalendarData(prevData => {
-          const newData = {
-            ...prevData,
-            [responseData.uploadDate.split('T')[0]]: prevData[responseData.uploadDate.split('T')[0]].map(entry => 
-              entry._id === documentId ? responseData : entry
-            ),
-          };
-          console.log('Updated calendar data:', JSON.stringify(newData, null, 2));
-          return newData;
-        });
-      } else {
-        console.error('No response data to update calendar');
-      }
+      setCalendarData(prevData => {
+        const dateKey = responseData.uploadDate?.split('T')[0] || entry.uploadDate?.split('T')[0];
+        if (!dateKey) {
+          console.error('No valid date key found in response or entry');
+          return prevData;
+        }
+  
+        const newData = {
+          ...prevData,
+          [dateKey]: (prevData[dateKey] || []).map(item => 
+            (item._id === entry._id || item.farmId === entry.farmId) ? responseData : item
+          ),
+        };
+        console.log('Updated calendar data:', JSON.stringify(newData, null, 2));
+        return newData;
+      });
   
       alert('Item updated successfully!');
     } catch (error) {
@@ -194,15 +193,23 @@ const Calendar: React.FC = () => {
                       <div className="flex space-x-2">
                         <button
                           onClick={() => {
-                            console.log('Save button clicked. Entry:', entry);
-                            if (editedItem && entry._id) {
-                              const updatedItems = [...entry.items];
-                              updatedItems[index] = editedItem;
-                              updateInventoryItem(entry._id, entry.farmId, updatedItems);
+                            console.log('Save button clicked');
+                            console.log('Current entry:', JSON.stringify(entry, null, 2));
+                            console.log('Edited item:', JSON.stringify(editedItem, null, 2));
+                            if (editedItem) {
+                              updateInventoryItem(entry, editedItem, index)
+                                .then(() => {
+                                  console.log('Update completed');
+                                  setEditingItem(null);
+                                })
+                                .catch((error) => {
+                                  console.error('Error in updateInventoryItem:', error);
+                                  alert(`Failed to update item: ${error.message}`);
+                                });
                             } else {
-                              console.error('Unable to update: missing editedItem or entry._id', { editedItem, entryId: entry._id });
+                              console.error('editedItem is null');
+                              alert('No changes to save');
                             }
-                            setEditingItem(null);
                           }}
                           className="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
                         >
@@ -223,7 +230,8 @@ const Calendar: React.FC = () => {
                       </span>
                       <button
                         onClick={() => {
-                          console.log('Edit button clicked. Current item:', item, 'Entry:', entry);
+                          console.log('Edit button clicked');
+                          console.log('Current item:', JSON.stringify(item, null, 2));
                           setEditingItem(`${entry._id}-${index}`);
                           setEditedItem(item);
                         }}
