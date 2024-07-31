@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { ChevronUp, ChevronDown, Edit2, Save, X } from 'lucide-react';
 
-interface InventoryItem {
+interface InventoryItemData {
   name: string;
   quantity: string;
   note: string;
@@ -10,20 +11,47 @@ interface InventoryItem {
 interface InventoryEntry {
   _id: string;
   farmId: string;
-  items: InventoryItem[];
+  items: InventoryItemData[];
   uploadDate: string;
 }
+
 
 interface CalendarData {
   [date: string]: InventoryEntry[];
 }
 
+
 const Calendar: React.FC = () => {
+  const { data: session } = useSession();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [calendarData, setCalendarData] = useState<CalendarData>({});
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<string | null>(null);
-  const [editedItem, setEditedItem] = useState<InventoryItem | null>(null);
+  const [editedItem, setEditedItem] = useState<InventoryItemData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const formatDate = (date: Date | string): string => {
+    if (typeof date === 'string') {
+      // If it's already a string in 'YYYY-MM-DD' format, just return it
+      if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return date;
+      }
+      // If it's a string but not in the correct format, try to parse it
+      date = new Date(date);
+    }
+    
+    if (!(date instanceof Date) || isNaN(date.getTime())) {
+      console.error('Invalid date:', date);
+      return 'Invalid Date';
+    }
+  
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
 
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -35,77 +63,84 @@ const Calendar: React.FC = () => {
   }, [currentDate]);
 
   const fetchCalendarData = async (year: number, month: number) => {
+    setIsLoading(true);
+    setError(null);
     try {
+      console.log(`Fetching data for year: ${year}, month: ${month}`);
       const response = await fetch(`/api/inventory/calendar?year=${year}&month=${month}`);
+      console.log('Response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch calendar data');
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const data: CalendarData = await response.json();
-      console.log('Fetched calendar data:', data);
-      setCalendarData(data);
+      
+      const data = await response.json();
+      console.log('Raw data from API:', JSON.stringify(data, null, 2));
+      
+      if (!Array.isArray(data)) {
+        console.error('Data is not an array as expected');
+        throw new Error('Invalid data format received from API');
+      }
+      
+      const processedData: { [date: string]: InventoryEntry[] } = {};
+      data.forEach((entry: InventoryEntry) => {
+        const date = entry.uploadDate.split('T')[0]; // Extract date part
+        if (!processedData[date]) {
+          processedData[date] = [];
+        }
+        processedData[date].push(entry);
+      });
+      
+      console.log('Processed calendar data:', processedData);
+      
+      if (Object.keys(processedData).length === 0) {
+        console.log('No data processed for the selected month and year');
+      } else {
+        console.log('Dates with data:', Object.keys(processedData));
+      }
+  
+      setCalendarData(processedData);
     } catch (error) {
-      console.error('Error fetching calendar data:', error);
+      console.error('Error fetching or processing calendar data:', error);
+      setError('Failed to fetch or process calendar data. Please try again later.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const updateInventoryItem = async (documentId: string, farmId: string, updatedItems: InventoryItem[]) => {
-    console.log('Attempting to update item:', { documentId, farmId, updatedItems });
+  const updateInventoryItem = async (entry: InventoryEntry, itemKey: string, updatedItem: InventoryItemData) => {
     try {
-      if (!documentId) {
-        console.error('Invalid document ID:', documentId);
-        throw new Error('Invalid document ID');
-      }
-  
-      const updateData = {
-        _id: documentId,
-        farmId: farmId,
-        items: updatedItems,
-        uploadDate: new Date().toISOString()
-      };
-      console.log('Sending update data:', JSON.stringify(updateData, null, 2));
-  
-      const response = await fetch('/api/inventory/update', {
+      const response = await fetch(`/api/inventory/update`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(updateData),
+        body: JSON.stringify({
+          _id: entry._id,
+          itemKey: itemKey,
+          updatedItem: updatedItem,
+          lastEditedBy: session?.user?.name || 'Unknown User',
+          lastEditedAt: new Date().toISOString()
+        }),
       });
-      console.log('Response status:', response.status);
-      const responseText = await response.text();
-      console.log('Raw response text:', responseText);
-  
-      let responseData;
-      try {
-        responseData = JSON.parse(responseText);
-        console.log('Parsed response data:', responseData);
-      } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
-      }
-  
+
       if (!response.ok) {
-        throw new Error(`Failed to update inventory item: ${responseText}`);
+        throw new Error('Failed to update inventory item');
       }
-  
-      if (responseData) {
-        setCalendarData(prevData => {
-          const newData = {
-            ...prevData,
-            [responseData.uploadDate.split('T')[0]]: prevData[responseData.uploadDate.split('T')[0]].map(entry => 
-              entry._id === documentId ? responseData : entry
-            ),
-          };
-          console.log('Updated calendar data:', JSON.stringify(newData, null, 2));
-          return newData;
-        });
-      } else {
-        console.error('No response data to update calendar');
-      }
-  
+
+      const updatedEntry: InventoryEntry = await response.json();
+
+      setCalendarData(prevData => ({
+        ...prevData,
+        [selectedDate!]: prevData[selectedDate!].map(item => 
+          item._id === entry._id ? updatedEntry : item
+        ),
+      }));
+
       alert('Item updated successfully!');
     } catch (error) {
       console.error('Error updating inventory item:', error);
-      alert(`Failed to update item: ${error}`);
+      alert('Failed to update item. Please try again.');
     }
   };
 
@@ -120,127 +155,166 @@ const Calendar: React.FC = () => {
     });
   };
 
+
+
   const renderCalendarDays = () => {
+    console.log('Rendering calendar days. Current calendar data:', calendarData);
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
-    const daysInMonth = getDaysInMonth(year, month);
-    const firstDayOfMonth = getFirstDayOfMonth(year, month);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const firstDayOfMonth = new Date(year, month, 1).getDay();
     const days = [];
-
+  
     for (let i = 0; i < firstDayOfMonth; i++) {
       days.push(<div key={`empty-${i}`} className="h-8 border border-gray-200"></div>);
     }
-
+  
     for (let day = 1; day <= daysInMonth; day++) {
-      const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const isToday = day === new Date().getDate() && 
-                      month === new Date().getMonth() && 
-                      year === new Date().getFullYear();
-      const hasData = calendarData[date] && calendarData[date].length > 0;
+      const date = new Date(year, month, day);
+      const dateString = formatDate(date);
+      const hasData = calendarData[dateString] && calendarData[dateString].length > 0;
       
+      if (hasData) {
+        console.log(`Data found for date ${dateString}:`, calendarData[dateString]);
+      }
+  
       days.push(
         <div 
-          key={date} 
-          className={`h-8 border border-gray-200 flex items-center justify-center relative cursor-pointer
-                      ${isToday ? 'bg-blue-100' : ''}
-                      ${hasData ? 'font-bold' : ''}
-                      ${selectedDate === date ? 'bg-blue-200' : ''}
+          key={dateString} 
+          className={`h-8 border border-gray-200 flex items-center justify-center cursor-pointer
+                      ${hasData ? 'bg-blue-100 font-bold' : ''}
+                      ${selectedDate === dateString ? 'bg-blue-200' : ''}
                       hover:bg-gray-100`}
-          onClick={() => setSelectedDate(date)}
+          onClick={() => setSelectedDate(dateString)}
         >
           {day}
-          {hasData && <div className="absolute bottom-0.5 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-500 rounded-full"></div>}
+          {hasData && <span className="ml-1">•</span>}
         </div>
       );
     }
-
+  
     return days;
+  };
+  
+  const isSameDay = (date1: Date, date2: Date) => {
+    return date1.getFullYear() === date2.getFullYear() &&
+           date1.getMonth() === date2.getMonth() &&
+           date1.getDate() === date2.getDate();
   };
 
   const renderSelectedDateData = () => {
-    if (!selectedDate || !calendarData[selectedDate] || calendarData[selectedDate].length === 0) {
-      return <p className="mt-4 p-4 border border-gray-200 rounded">No data for selected date.</p>;
+    if (!selectedDate) {
+      return <p className="mt-4 p-4 border border-gray-200 rounded">Select a date to view inventory.</p>;
     }
-
+  
+    const formattedDate = formatDate(selectedDate);
+    const inventoryForDate = calendarData[formattedDate] || [];
+  
+    if (inventoryForDate.length === 0) {
+      return <p className="mt-4 p-4 border border-gray-200 rounded">No inventory data for {formattedDate}.</p>;
+    }
+  
     return (
       <div className="mt-4 p-4 border border-gray-200 rounded">
-        <h3 className="text-lg font-semibold mb-2">Inventory for {selectedDate}</h3>
-        {calendarData[selectedDate].map((entry) => (
+        <h3 className="text-lg font-semibold mb-2">Inventory for {formattedDate}</h3>
+        {inventoryForDate.map((entry: InventoryEntry) => (
           <div key={entry._id} className="mb-4">
             <h4 className="font-semibold">Farm ID: {entry.farmId}</h4>
             <ul className="list-disc pl-5">
-              {entry.items.map((item, index) => (
-                <li key={index} className="mb-2">
-                  {editingItem === `${entry._id}-${index}` ? (
-                    <div className="flex flex-col space-y-2">
-                      <input
-                        type="text"
-                        value={editedItem?.name || ''}
-                        onChange={(e) => setEditedItem({ ...editedItem!, name: e.target.value })}
-                        className="border rounded px-2 py-1"
-                      />
-                      <input
-                        type="text"
-                        value={editedItem?.quantity || ''}
-                        onChange={(e) => setEditedItem({ ...editedItem!, quantity: e.target.value })}
-                        className="border rounded px-2 py-1"
-                      />
-                      <input
-                        type="text"
-                        value={editedItem?.note || ''}
-                        onChange={(e) => setEditedItem({ ...editedItem!, note: e.target.value })}
-                        className="border rounded px-2 py-1"
-                      />
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => {
-                            console.log('Save button clicked. Entry:', entry);
-                            if (editedItem && entry._id) {
-                              const updatedItems = [...entry.items];
-                              updatedItems[index] = editedItem;
-                              updateInventoryItem(entry._id, entry.farmId, updatedItems);
-                            } else {
-                              console.error('Unable to update: missing editedItem or entry._id', { editedItem, entryId: entry._id });
-                            }
-                            setEditingItem(null);
-                          }}
-                          className="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
-                        >
-                          <Save size={16} />
-                        </button>
-                        <button
-                          onClick={() => setEditingItem(null)}
-                          className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
-                        >
-                          <X size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between">
-                      <span>
-                        {item.name}: {item.quantity} - Note: {item.note}
-                      </span>
-                      <button
-                        onClick={() => {
-                          console.log('Edit button clicked. Current item:', item, 'Entry:', entry);
-                          setEditingItem(`${entry._id}-${index}`);
-                          setEditedItem(item);
-                        }}
-                        className="ml-2 text-blue-500 hover:text-blue-700"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                    </div>
-                  )}
-                </li>
-              ))}
+              {renderInventoryItems(entry)}
             </ul>
           </div>
         ))}
       </div>
     );
   };
+
+  const renderInventoryItems = (entry: InventoryEntry) => {
+    if (!entry.items || entry.items.length === 0) {
+      return <li>No items available</li>;
+    }
+  
+    return entry.items.map((item: InventoryItemData, index: number) => (
+      <li key={index} className="mb-2">
+        <div className="flex items-center justify-between">
+          <span>
+            {item.name}: {item.quantity} - Note: {item.note}
+          </span>
+          <button
+            onClick={() => {
+              setEditingItem(`${entry._id}-${index}`);
+              setEditedItem(item);
+            }}
+            className="ml-2 text-blue-500 hover:text-blue-700"
+          >
+            <Edit2 size={16} />
+          </button>
+        </div>
+      </li>
+    ));
+  };
+
+  const renderItem = (entry: InventoryEntry, key: string, item: InventoryItemData) => (
+    <li key={key} className="mb-2">
+      {editingItem === `${entry._id}-${key}` ? (
+        <div className="flex flex-col space-y-2">
+          <input
+            type="text"
+            value={editedItem?.name || ''}
+            onChange={(e) => setEditedItem({ ...editedItem!, name: e.target.value })}
+            className="border rounded px-2 py-1"
+          />
+          <input
+            type="text"
+            value={editedItem?.quantity || ''}
+            onChange={(e) => setEditedItem({ ...editedItem!, quantity: e.target.value })}
+            className="border rounded px-2 py-1"
+          />
+          <input
+            type="text"
+            value={editedItem?.note || ''}
+            onChange={(e) => setEditedItem({ ...editedItem!, note: e.target.value })}
+            className="border rounded px-2 py-1"
+          />
+          <div className="flex space-x-2">
+            <button
+              onClick={() => {
+                if (editedItem) {
+                  updateInventoryItem(entry, key, editedItem);
+                }
+                setEditingItem(null);
+              }}
+              className="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
+            >
+              <Save size={16} />
+            </button>
+            <button
+              onClick={() => setEditingItem(null)}
+              className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between">
+          <span>
+            {item.name}: {item.quantity} - Note: {item.note}
+          </span>
+          <button
+            onClick={() => {
+              setEditingItem(`${entry._id}-${key}`);
+              setEditedItem(item);
+            }}
+            className="ml-2 text-blue-500 hover:text-blue-700"
+          >
+            <Edit2 size={16} />
+          </button>
+        </div>
+      )}
+    </li>
+  );
+
 
   return (
     <div className="max-w-md mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
@@ -265,15 +339,20 @@ const Calendar: React.FC = () => {
       <div className="grid grid-cols-7 gap-px bg-gray-200">
         {renderCalendarDays()}
       </div>
-      {renderSelectedDateData()}
-      <div className="px-4 py-2 bg-gray-100">
-        <button 
-          className="w-full py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition duration-200"
-          onClick={() => setCurrentDate(new Date())}
-        >
-          Today
-        </button>
-      </div>
+      {isLoading ? (
+        <div className="p-4 text-center">Loading...</div>
+      ) : error ? (
+        <div className="p-4 text-center text-red-500">{error}</div>
+      ) : (
+        <div>
+          <div className="p-4">
+            <h3 className="font-bold">Debug Info:</h3>
+            <p>Selected Date: {selectedDate || 'None'}</p>
+            <p>Dates with data: {Object.keys(calendarData).join(', ')}</p>
+          </div>
+          {renderSelectedDateData()}
+        </div>
+      )}
     </div>
   );
 };
